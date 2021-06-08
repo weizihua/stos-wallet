@@ -21,6 +21,8 @@ import (
 //go:generate go run github.com/golang/mock/mockgen -destination=servicesmock_test.go -package=cli -self_package github.com/filecoin-project/lotus/cli . ServicesAPI
 
 type ServicesAPI interface {
+	GetAPI() api.FullNode
+
 	// Sends executes a send given SendParams
 	Send(ctx context.Context, params SendParams) (cid.Cid, error)
 	// DecodeTypedParamsFromJSON takes in information needed to identify a method and converts JSON
@@ -92,6 +94,10 @@ type SendParams struct {
 // We will see
 
 var ErrSendBalanceTooLow = errors.New("balance too low")
+
+func (s *ServicesImpl) GetAPI() api.FullNode {
+	return s.api
+}
 
 func (s *ServicesImpl) Send(ctx context.Context, params SendParams) (cid.Cid, error) {
 	if params.From == address.Undef {

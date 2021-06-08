@@ -22,8 +22,6 @@ const (
 )
 
 const (
-	LOTUS_SEND_METHOD      = 0
-	LOTUS_SEND_WITHDRAW    = 16
 	LOTUS_ENV_FULLNODE_API = "FULLNODE_API_INFO"
 	LOTUS_ENV_MINER_API    = "MINER_API_INFO"
 )
@@ -31,9 +29,8 @@ const (
 func checkApiEnv() (err error) {
 
 	strFullNodeApi := os.Getenv(LOTUS_ENV_FULLNODE_API)
-	strMinerApi := os.Getenv(LOTUS_ENV_MINER_API)
-	if strFullNodeApi == "" || strMinerApi == "" {
-		err = fmt.Errorf("environment %s or %s not set", LOTUS_ENV_FULLNODE_API, LOTUS_ENV_MINER_API)
+	if strFullNodeApi == "" {
+		err = fmt.Errorf("environment %s not set", LOTUS_ENV_FULLNODE_API)
 		return
 	}
 	return
@@ -46,6 +43,7 @@ func main() {
 	}
 	local := []*cli.Command{
 		runCmd,
+		sendCmd,
 	}
 	app := &cli.App{
 		Name:     PROGRAM_NAME,
@@ -91,19 +89,43 @@ var sendCmd = &cli.Command{
 		&cli.Uint64Flag{
 			Name:  "method",
 			Usage: "specify method to invoke",
-			Value: LOTUS_SEND_METHOD,
+			Value: lotus.LOTUS_SEND_METHOD,
+		},
+		&cli.StringFlag{
+			Name:  "gas-premium",
+			Usage: "specify gas price to use in AttoFIL",
+			Value: "0",
+		},
+		&cli.StringFlag{
+			Name:  "gas-feecap",
+			Usage: "specify gas fee cap to use in AttoFIL",
+			Value: "0",
+		},
+		&cli.Int64Flag{
+			Name:  "gas-limit",
+			Usage: "specify gas limit",
+			Value: 0,
+		},
+		&cli.Uint64Flag{
+			Name:  "nonce",
+			Usage: "specify the nonce to use",
+			Value: 0,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
 		if cctx.Args().Len() != 2 {
 			return fmt.Errorf("'send' expects two arguments, target and amount")
 		}
-		var send = &lotus.Send{
-			From:      cctx.String("from"),
-			To:        cctx.Args().Get(0),
-			Amount:    cctx.Args().Get(1),
-			MethodNum: abi.MethodNum(cctx.Uint64("method")),
+		var s = &lotus.SendReq{
+			From:       cctx.String("from"),
+			To:         cctx.Args().Get(0),
+			Amount:     cctx.Args().Get(1),
+			GasPremium: cctx.String("gas-premium"),
+			GasFeeCap:  cctx.String("gas-feecap"),
+			GasLimit:   cctx.Int64("gas-limit"),
+			MethodNum:  abi.MethodNum(cctx.Uint64("method")),
 		}
-		return lotus.LotusSend(cctx, send)
+		_, err := lotus.Send(cctx, s)
+		return err
 	},
 }
